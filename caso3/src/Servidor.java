@@ -7,13 +7,33 @@ import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
 
 public class Servidor {
+    
+    // Credenciales de acceso al servidor
+    private static final String login = "admin";
+    private static final String password = "admin";
+
+    // Par claves asimétricas RSA
+    private static PublicKey publicServerKey;
+    private static  PrivateKey privateServerKey;
+
     public static void main(String[] args) {
         int port = 1234; // Puerto en el que escucha el servidor
         ServerSocket serverSocket = null;
 
         try {
             serverSocket = new ServerSocket(port);
+
+            // Generar un par de claves RSA
+            KeyPair pair = RSAKeyPairGenerator();
+            PublicKey publicKey = pair.getPublic();
+            PrivateKey privateKey = pair.getPrivate();
+
+            publicServerKey = publicKey;
+            privateServerKey = privateKey;
+
             System.out.println("Servidor iniciado, escuchando en el puerto " + port);
+
+            
 
             while (true) {
                 try {
@@ -55,13 +75,7 @@ public class Servidor {
                     System.out.println("Mensaje recibido del cliente: " + clientInput);
                     out.println("Eco del servidor: " + clientInput); // El servidor responde con un eco
 
-                    // Generar una clave simétrica
-                    SecretKey simetricKey = AESKeyGeneration();
-
-                    // Generar un par de claves RSA
-                    KeyPair pair = RSAKeyPairGenerator();
-                    PublicKey publicKey = pair.getPublic();
-                    PrivateKey privateKey = pair.getPrivate();
+                    // Diffie-Hellman
 
                     // Generar un vector de inicialización (IV) aleatorio
                     byte[] iv = new byte[16]; // AES utiliza bloques de 16 bytes
@@ -79,18 +93,6 @@ public class Servidor {
                     System.out.println("No se pudo cerrar el socket del cliente.");
                 }
             }
-        }
-    }
-
-    private static SecretKey AESKeyGeneration() {
-        try {
-            // Generar una clave secreta (AES) de 128 bits
-            KeyGenerator keyGen = KeyGenerator.getInstance("AES");
-            keyGen.init(128);
-            SecretKey secretKey = keyGen.generateKey();
-            return secretKey;
-        } catch (NoSuchAlgorithmException e) {
-            return null;
         }
     }
 
