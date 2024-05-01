@@ -1,5 +1,10 @@
 import java.io.*;
 import java.net.*;
+import java.math.BigInteger;
+import java.security.*;
+import java.util.*;
+import javax.crypto.*;
+import javax.crypto.spec.IvParameterSpec;
 
 public class Servidor {
     public static void main(String[] args) {
@@ -49,6 +54,21 @@ public class Servidor {
                 while ((clientInput = in.readLine()) != null) {
                     System.out.println("Mensaje recibido del cliente: " + clientInput);
                     out.println("Eco del servidor: " + clientInput); // El servidor responde con un eco
+
+                    // Generar una clave simétrica
+                    SecretKey simetricKey = AESKeyGeneration();
+
+                    // Generar un par de claves RSA
+                    KeyPair pair = RSAKeyPairGenerator();
+                    PublicKey publicKey = pair.getPublic();
+                    PrivateKey privateKey = pair.getPrivate();
+
+                    // Generar un vector de inicialización (IV) aleatorio
+                    byte[] iv = new byte[16]; // AES utiliza bloques de 16 bytes
+                    SecureRandom random = new SecureRandom();
+                    random.nextBytes(iv);
+                    IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
+        
                 }
             } catch (IOException e) {
                 System.out.println("Error al manejar al cliente: " + e.getMessage());
@@ -59,6 +79,35 @@ public class Servidor {
                     System.out.println("No se pudo cerrar el socket del cliente.");
                 }
             }
+        }
+    }
+
+    private static SecretKey AESKeyGeneration() {
+        try {
+            // Generar una clave secreta (AES) de 128 bits
+            KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+            keyGen.init(128);
+            SecretKey secretKey = keyGen.generateKey();
+            return secretKey;
+        } catch (NoSuchAlgorithmException e) {
+            return null;
+        }
+    }
+
+    private static KeyPair RSAKeyPairGenerator() {
+        try {
+            // Inicializar el generador de pares de claves para RSA
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+            keyGen.initialize(2048);
+
+            // Generar el par de claves
+            KeyPair pair = keyGen.generateKeyPair();
+            return pair;
+
+        } catch (NoSuchAlgorithmException e) {
+            System.out.println("RSA Key Pair Generator Algorithm not found: " + e.getMessage());
+
+            return null;
         }
     }
 }

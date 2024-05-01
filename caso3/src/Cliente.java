@@ -1,6 +1,8 @@
-
 import java.io.*;
 import java.net.*;
+import java.util.*;
+import java.security.*;
+import java.math.BigInteger;
 
 public class Cliente {
     public static void main(String[] args) {
@@ -13,10 +15,10 @@ public class Cliente {
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             BufferedReader stdInput = new BufferedReader(new InputStreamReader(System.in));
 
-            System.out.println("Cliente conectado al servidor " + hostname + " en el puerto " + port);
-            System.out.println("Escriba su mensaje:");
-            String userInput = stdInput.readLine();
-            out.println(userInput);
+            // Paso 1: Cliente envía un número aleatorio al servidor
+            BigInteger reto = generateRandomNumber();
+
+            out.println(reto);
 
             String serverResponse = in.readLine();
             System.out.println("Respuesta del servidor: " + serverResponse);
@@ -30,5 +32,12 @@ public class Cliente {
         } catch (IOException e) {
             System.out.println("Error de I/O: " + e.getMessage());
         }
+    }
+
+
+    public static BigInteger generateRandomNumber() {
+        SecureRandom random = new SecureRandom();
+        int numBits = 256;
+        return new BigInteger(numBits, random);
     }
 }
