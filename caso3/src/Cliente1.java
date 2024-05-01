@@ -25,11 +25,20 @@ public class Cliente1 implements Runnable {
             BigInteger reto = generateRandomNumber();
 
             // Enviar un mensaje al servidor
-            out.println("Hello from " + Thread.currentThread().getName() + " with challenge: " + reto);
+            out.println(reto);
 
             // Leer la respuesta del servidor
             String response = in.readLine();
             System.out.println(Thread.currentThread().getName() + " received: " + response);
+
+            // Verificar reto
+            BigInteger respuesta = new BigInteger(response);
+            if (respuesta.equals(reto)) {
+                System.out.println("OK" + " " + respuesta);
+            }
+            else{
+                System.out.println("ERROR" + " " + respuesta);
+            }
 
             socket.close();
         } catch (IOException e) {

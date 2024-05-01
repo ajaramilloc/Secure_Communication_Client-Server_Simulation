@@ -1,9 +1,12 @@
 import java.io.*;
+import java.math.BigInteger;
 import java.net.*;
 import java.security.*;
 import java.util.concurrent.*;
 import java.util.*;
 import javax.crypto.*;
+import javax.crypto.interfaces.DHPublicKey;
+import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 
 public class Servidor1 {
@@ -29,7 +32,7 @@ public class Servidor1 {
         }
     }
 
-    public void start() {
+    public void start() throws InvalidAlgorithmParameterException {
         System.out.println("Server started on port " + serverSocket.getLocalPort());
 
         // Generar un par de claves RSA
@@ -39,6 +42,8 @@ public class Servidor1 {
 
         publicServerKey = publicKey;
         privateServerKey = privateKey;
+
+        DH();
         try {
             while (true) {
                 // Crear Delegado para manejar la conexión con el cliente
@@ -51,7 +56,7 @@ public class Servidor1 {
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InvalidAlgorithmParameterException {
         int port = 12345; // Port to listen on
         Servidor1 server = new Servidor1(port, 10);
         server.start();
@@ -73,6 +78,50 @@ public class Servidor1 {
             return null;
         }
     }
+
+    private static void DH() throws InvalidAlgorithmParameterException{
+        try {
+            
+            // Inicializar los parámetros de Diffie-Hellman (estos valores son solo un ejemplo)
+            // Primo p
+            String hexPrime = "00a16edf36080bf8293a14699324d5fbfe83ae4bfb4913276cbe686a103d0adc261e20b589a6f5ab95f97a720549a18a10eac782fc53097fa21dc3b9315a6e836cdcb94595a8f50dcaf33a9dc40e3ad6db91822384e63ea3b0daaa12ab4e61a31312ea0882de6eb88d4dfa28943376b9fe3ecc8e3e2db7e2ed89f4069df76be877";
+            BigInteger p = new BigInteger(hexPrime, 16);
+            // Generador g
+            BigInteger g = new BigInteger("2", 16); // Reemplaza "valor_de_g" con el valor real
+            DHParameterSpec dhSpec = new DHParameterSpec(p, g);
+
+            // Generar par de claves Diffie-Hellman
+            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("DH");
+            keyPairGenerator.initialize(dhSpec);
+            KeyPair keyPair = keyPairGenerator.generateKeyPair();
+
+            // Supongamos que ambos usuarios tienen la misma llave maestra ahora, ej. la parte pública de otra entidad
+            BigInteger masterKey = ((DHPublicKey) keyPair.getPublic()).getY(); // Simulación de llave maestra
+
+            // Calcular SHA-512 de la llave maestra
+            MessageDigest sha512 = MessageDigest.getInstance("SHA-512");
+            byte[] digest = sha512.digest(masterKey.toByteArray());
+
+            // Dividir el digest en llaves de cifrado y HMAC
+            byte[] encryptionKey = Arrays.copyOfRange(digest, 0, 32); // Primeros 256 bits
+            byte[] hmacKey = Arrays.copyOfRange(digest, 32, 64); // Últimos 256 bits
+
+            // Imprimir las llaves en hexadecimal
+            System.out.println("Llave para cifrado (hex): " + bytesToHex(encryptionKey));
+            System.out.println("Llave para HMAC (hex): " + bytesToHex(hmacKey));
+
+        } catch (NoSuchAlgorithmException e) {
+            System.out.println("Error durante la generación de claves o digest");
+        }
+    }
+
+    private static String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
+    }
 }
 
 class ClientHandler implements Runnable {
@@ -90,8 +139,7 @@ class ClientHandler implements Runnable {
 
             String inputLine;
             while ((inputLine = in.readLine()) != null) {
-                System.out.println("Received from client: " + inputLine);
-                out.println("Echo: " + inputLine);
+                out.println(inputLine);
             }
 
             // Generar un vector de inicialización (IV) aleatorio
