@@ -11,7 +11,7 @@ public class Server {
     private ServerSocket serverSocket;
 
     public Server() throws IOException {
-        serverSocket = new ServerSocket(12345);
+        serverSocket = new ServerSocket(BASE_PORT);
     }
 
     public void startServer() {
@@ -49,7 +49,6 @@ public class Server {
                     long challenge = Long.parseLong(clientMessage.split(" ")[2]);
                     BigInteger R = signChallenge(challenge);
                     output.writeUTF(R.toString());
-
                     String clientResponse = input.readUTF();
                     if (clientResponse.equals("OK")) {
                         SecureRandom random = new SecureRandom();
@@ -68,6 +67,7 @@ public class Server {
                         byte[] signature = signData(G, P, Gx);
                         output.write(signature);
                     } else {
+                        System.out.println("Error: client response not OK");
                         input.close();
                         output.close();
                         socket.close();
