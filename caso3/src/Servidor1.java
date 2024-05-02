@@ -140,13 +140,13 @@ class ClientHandler implements Runnable {
             String inputLine;
             while ((inputLine = in.readLine()) != null) {
                 out.println(inputLine);
-            }
 
-            // Generar un vector de inicialización (IV) aleatorio
-            byte[] iv = new byte[16]; // AES utiliza bloques de 16 bytes
-            SecureRandom random = new SecureRandom();
-            random.nextBytes(iv);
-            IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
+                // Generar un vector de inicialización (IV) aleatorio
+                byte[] iv = new byte[16]; // AES utiliza bloques de 16 bytes
+                SecureRandom random = new SecureRandom();
+                random.nextBytes(iv);
+                IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
+            }
 
             clientSocket.close();
         } catch (IOException e) {
