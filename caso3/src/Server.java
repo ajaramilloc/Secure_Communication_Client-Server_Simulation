@@ -11,20 +11,20 @@ public class Server {
     private ServerSocket serverSocket;
 
     public Server() throws IOException {
-        serverSocket = new ServerSocket(BASE_PORT);
+        serverSocket = new ServerSocket(12345);
     }
 
     public void startServer() {
         int delegateCount = 0;
-        while (true) {
-            try {
+        try {
+            while (true) {
                 Socket clientSocket = serverSocket.accept();
                 int delegatePort = BASE_PORT + delegateCount + 1;
                 new ServerDelegate(clientSocket, delegatePort).start();
                 delegateCount++;
-            } catch (IOException e) {
-                System.out.println("Error accepting client connection: " + e.getMessage());
             }
+        }catch (IOException e) {
+            System.out.println("Error accepting client connection: " + e.getMessage());
         }
     }
 
@@ -116,6 +116,7 @@ public class Server {
     public static void main(String[] args) {
         try {
             Server server = new Server();
+            System.out.println("Server started on port " + BASE_PORT);
             server.startServer();
         } catch (IOException e) {
             System.out.println("Failed to start server: " + e.getMessage());

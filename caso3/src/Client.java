@@ -16,7 +16,7 @@ public class Client {
 
     public void startClient(int numberOfDelegates) {
         for (int i = 0; i < numberOfDelegates; i++) {
-            new ClientDelegate(address, port + i + 1).start();
+            new ClientDelegate(address, port).start();
         }
     }
 
@@ -35,6 +35,7 @@ public class Client {
         public void run() {
             try {
                 socket = new Socket(address, port);
+                System.out.println("Client connected on port ");
                 output = new DataOutputStream(socket.getOutputStream());
                 input = new DataInputStream(socket.getInputStream());
 
@@ -80,7 +81,7 @@ public class Client {
     }
 
     public static void main(String[] args) {
-        Client client = new Client("localhost", 5000);
+        Client client = new Client("localhost", 12345);
         client.startClient(5);  // Starts 5 client delegates
     }
 }
