@@ -9,10 +9,14 @@ public class ServerDelegate extends Thread {
     private DataOutputStream output;
     private DataInputStream input;
     private KeyPair keyPair;
+    private BigInteger p;
+    private BigInteger g;
 
-    public ServerDelegate(Socket socket, int port, KeyPair keyPair) {
+    public ServerDelegate(Socket socket, int port, KeyPair keyPair, BigInteger p, BigInteger g) {
         this.socket = socket;
         this.keyPair = keyPair;
+        this.p = p;
+        this.g = g;
     }
 
     public void run() {
@@ -35,8 +39,8 @@ public class ServerDelegate extends Thread {
                 // Verified
                 if (clientResponse.equals("OK")) {
                     SecureRandom random = new SecureRandom();
-                    BigInteger G = BigInteger.probablePrime(512, random);
-                    BigInteger P = BigInteger.probablePrime(512, random);
+                    BigInteger G = g;
+                    BigInteger P = p;
                     BigInteger x = new BigInteger(512, random);
                     BigInteger Gx = G.modPow(x, P);
 
