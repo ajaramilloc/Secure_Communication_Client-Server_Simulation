@@ -39,6 +39,12 @@ public class ClientDelegate extends Thread {
                 System.out.println("OK");
 
                 // Receive and process Diffie-Hellman parameters and signature
+                String G = input.readUTF();
+                System.out.println("G: " + G);
+                String P = input.readUTF();
+                System.out.println("P: " + P);
+                String Gx = input.readUTF();
+                System.out.println("Gx: " + Gx);
             } else {
                 output.writeUTF("ERROR");
                 System.out.println("ERROR");
