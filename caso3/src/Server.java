@@ -8,7 +8,7 @@ public class Server extends Thread {
     private static final int BASE_PORT = 5000;
     private ServerSocket serverSocket;
     public static PublicKey serverPublicKey;
-    public static KeyPair serverPairKey;
+    private static KeyPair serverPairKey;
     private static BigInteger p;
     private static BigInteger g;
 
