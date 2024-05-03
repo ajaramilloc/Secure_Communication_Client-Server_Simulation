@@ -48,11 +48,18 @@ public class ServerDelegate extends Thread {
                     output.writeUTF(P.toString());
                     output.writeUTF(Gx.toString());
 
-                    byte[] iv = generateIV();
-                    output.write(iv);
+                    String iv = generateIV();
+                    output.writeUTF(iv);
 
-                    byte[] signature = signData(G, P, Gx);
-                    output.write(signature);
+                    String signature = signData(G, P, Gx);
+                    output.writeUTF(signature);
+
+                    String clientVerification = input.readUTF();
+                    if (clientVerification.equals("OK")) {
+                        System.out.println("Client verified");
+                    } else {
+                        System.out.println("Client not verified");
+                    }
 
                 // Not Verified
                 } else {
@@ -75,7 +82,7 @@ public class ServerDelegate extends Thread {
         return Base64.getEncoder().encodeToString(signedData);
     }
 
-    private byte[] signData(BigInteger G, BigInteger P, BigInteger Gx) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, IOException {
+    private String signData(BigInteger G, BigInteger P, BigInteger Gx) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, IOException {
         Signature signature = Signature.getInstance("SHA256withRSA");
         signature.initSign(keyPair.getPrivate());
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -83,13 +90,14 @@ public class ServerDelegate extends Thread {
         outputStream.write(P.toByteArray());
         outputStream.write(Gx.toByteArray());
         signature.update(outputStream.toByteArray());
-        return signature.sign();
+        byte[] signedData = signature.sign();
+        return Base64.getEncoder().encodeToString(signedData);
     }
 
-    private byte[] generateIV() {
+    private String generateIV() {
         SecureRandom random = new SecureRandom();
         byte[] iv = new byte[16];
         random.nextBytes(iv);
-        return iv;
+        return Base64.getEncoder().encodeToString(iv);
     }
 }

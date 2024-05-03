@@ -40,11 +40,24 @@ public class ClientDelegate extends Thread {
 
                 // Receive and process Diffie-Hellman parameters and signature
                 String G = input.readUTF();
-                System.out.println("G: " + G);
+                BigInteger Gb = new BigInteger(G);
                 String P = input.readUTF();
-                System.out.println("P: " + P);
+                BigInteger Pb = new BigInteger(P);
                 String Gx = input.readUTF();
-                System.out.println("Gx: " + Gx);
+                BigInteger Gbx = new BigInteger(Gx);
+                String iv = input.readUTF();
+
+                String signature = input.readUTF();
+
+                if (verifyMasterKey(signature, Gb, Pb, Gbx, publicKey)) {
+                    output.writeUTF("OK");
+                    System.out.println("Master key verified");
+                } else {
+                    output.writeUTF("ERROR");
+                    System.out.println("Master key not verified");
+                }
+
+
             } else {
                 output.writeUTF("ERROR");
                 System.out.println("ERROR");
@@ -59,6 +72,19 @@ public class ClientDelegate extends Thread {
         Signature signature = Signature.getInstance("SHA256withRSA");
         signature.initVerify(publicKey);
         signature.update(BigInteger.valueOf(challenge).toByteArray());
+
+        byte[] signatureBytes = Base64.getDecoder().decode(signedData);
+        return signature.verify(signatureBytes);
+    }
+
+    private boolean verifyMasterKey(String signedData, BigInteger G, BigInteger P, BigInteger Gx, PublicKey publicKey) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, IOException {
+        Signature signature = Signature.getInstance("SHA256withRSA");
+        signature.initVerify(publicKey);
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(G.toByteArray());
+        outputStream.write(P.toByteArray());
+        outputStream.write(Gx.toByteArray());
+        signature.update(outputStream.toByteArray());
 
         byte[] signatureBytes = Base64.getDecoder().decode(signedData);
         return signature.verify(signatureBytes);
