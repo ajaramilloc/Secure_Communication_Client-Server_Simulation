@@ -81,7 +81,7 @@ public class Client {
     }
 
     public static void main(String[] args) {
-        Client client = new Client("localhost", 12345);
+        Client client = new Client("localhost", 5000);
         client.startClient(5);  // Starts 5 client delegates
     }
 }
