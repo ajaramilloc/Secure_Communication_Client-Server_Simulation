@@ -4,7 +4,7 @@ import java.security.*;
 import java.security.spec.*;
 import java.math.*;
 
-public class Server {
+public class Server extends Thread {
     private static final int BASE_PORT = 5000;
     private ServerSocket serverSocket;
     public static PublicKey serverPublicKey;
@@ -14,6 +14,15 @@ public class Server {
 
     public Server() throws IOException {
         serverSocket = new ServerSocket(BASE_PORT);
+    }
+
+    @Override
+    public void run() {
+        try {
+            startServer();
+        } catch (Exception e) {
+            System.out.println("Failed to start server: " + e.getMessage());
+        }
     }
 
     public void startServer() throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
@@ -48,34 +57,23 @@ public class Server {
                 new ServerDelegate(clientSocket, delegatePort, serverPairKey, p, g).start();
                 delegateCount++;
             }
-        }catch (IOException e) {
+        } catch (IOException e) {
             System.out.println("Error accepting client connection: " + e.getMessage());
         }
     }
 
-    private static KeyPair RSAKeyPairGenerator() {
-        try {
-            // Inicializar el generador de pares de claves para RSA
-            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-            keyGen.initialize(2048);
-
-            // Generar el par de claves
-            KeyPair pair = keyGen.generateKeyPair();
-            return pair;
-
-        } catch (NoSuchAlgorithmException e) {
-            System.out.println("RSA Key Pair Generator Algorithm not found: " + e.getMessage());
-
-            return null;
-        }
+    private static KeyPair RSAKeyPairGenerator() throws NoSuchAlgorithmException {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+        keyGen.initialize(2048);
+        return keyGen.generateKeyPair();
     }
 
-    public static void main(String[] args) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    public static void main(String[] args) {
         try {
             Server server = new Server();
-            server.startServer();
+            server.start();
         } catch (IOException e) {
-            System.out.println("Failed to start server: " + e.getMessage());
+            System.out.println("Server initialization failed: " + e.getMessage());
         }
     }
 }
