@@ -2,37 +2,52 @@ package prueba;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-// Clase Cliente
-class Cliente {
+public class Cliente {
     public static void main(String[] args) {
-        final String host = "localhost"; // Dirección IP del servidor
-        final int puerto = 12345; // Puerto en el que el servidor escucha las conexiones
+        // if (args.length < 1) {
+        //     System.out.println("Uso: java Cliente <numero de clientes>");
+        //     return;
+        // }
 
-        try (Socket socket = new Socket(host, puerto)) {
-            System.out.println("Conectado al servidor en " + host + ":" + puerto);
-            BufferedReader entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            PrintWriter salida = new PrintWriter(socket.getOutputStream(), true);
-            Scanner scanner = new Scanner(System.in);
+        // int numClientes = Integer.parseInt(args[0]);
+        int numClientes = 10;
+        ExecutorService pool = Executors.newFixedThreadPool(numClientes);
 
-            // Lee los mensajes del usuario y los envía al servidor
-            while (true) {
-                System.out.print("Mensaje: ");
-                String mensaje = scanner.nextLine();
-                salida.println(mensaje);
+        for (int i = 0; i < numClientes; i++) {
+            pool.execute(new ClienteRunnable());
+        }
 
-                // Si el mensaje es "adios", cierra la conexión y termina el programa
-                if (mensaje.equalsIgnoreCase("adios")) {
-                    break;
-                }
+        pool.shutdown();
+    }
+}
 
-                // Muestra los mensajes recibidos del servidor
-                System.out.println("Respuesta del servidor: " + entrada.readLine());
-            }
-            scanner.close();
-        } catch (IOException e) {
-            System.out.println("Error en el cliente: " + e.getMessage());
+class ClienteRunnable implements Runnable {
+    private static final String HOST = "localhost";
+    private static final int PORT = 1234;
+
+    @Override
+    public void run() {
+        try (Socket socket = new Socket(HOST, PORT)) {
+            System.out.println("Conectado al servidor en " + HOST + ":" + PORT);
+            // Enviar una consulta cifrada
+
+            DataOutputStream output = new DataOutputStream(socket.getOutputStream());
+            DataInputStream input = new DataInputStream(socket.getInputStream());
+
+            // OutputStream outputStream = socket.getOutputStream();
+            output.write("Consulta".getBytes());
+            output.flush();
+            System.out.println("Consulta enviada desde " + Thread.currentThread().getName());
+
+            String respuesta = input.readUTF(); // Esperar respuesta
+
+            System.out.println("Respuesta recibida en " + Thread.currentThread().getName() + ": " + respuesta);
+
+        } catch (Exception e) {
+            System.out.println("Error en cliente " + Thread.currentThread().getName() + ": " + e.getMessage());
         }
     }
 }

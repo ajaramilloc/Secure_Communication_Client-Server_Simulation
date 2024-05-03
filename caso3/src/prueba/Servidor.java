@@ -1,52 +1,89 @@
 package prueba;
 
 import java.io.*;
-import java.net.*;
-import java.util.*;
+import java.net.ServerSocket;
+import java.net.Socket;
+import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.Cipher;
+import java.security.Key;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 
-// Clase Servidor
-class Servidor {
-    public static void main(String[] args) {
-        final int puerto = 12345; // Puerto en el que el servidor escucha las conexiones
+public class Servidor {
+    public static void main(String[] args) throws Exception {
 
-        try (ServerSocket servidorSocket = new ServerSocket(puerto)) {
-            System.out.println("Servidor escuchando en el puerto " + puerto);
-            List<PrintWriter> clientes = new ArrayList<>(); // Lista de clientes conectados
+        // Generacion de las llaves publica y privada del servidor
+        KeyPair pair = RSAKeyPairGenerator();
+        PublicKey publicKey = pair.getPublic();
+        PrivateKey privateKey = pair.getPrivate();
 
-            while (true) {
-                Socket clienteSocket = servidorSocket.accept(); // Espera a que un cliente se conecte
-                System.out.println("Nuevo cliente conectado: " + clienteSocket);
+        System.out.println("Llave publica del servidor: " + publicKey.toString());
+        System.out.println("Llave privada del servidor: " + privateKey.toString());
+        
+        int port = 1234; // Puerto en el que el servidor escucha
+        ServerSocket serverSocket = new ServerSocket(port);
+        System.out.println("Servidor iniciado en el puerto " + port);
 
-                // Crea un hilo para manejar la comunicación con el cliente
-                Thread hiloCliente = new Thread(() -> {
-                    try {
-                        PrintWriter salida = new PrintWriter(clienteSocket.getOutputStream(), true);
-                        BufferedReader entrada = new BufferedReader(new InputStreamReader(clienteSocket.getInputStream()));
-                        clientes.add(salida); // Agrega el flujo de salida del cliente a la lista
+        while (true) {
+            Socket socket = serverSocket.accept();
+            new DelegadoServidor(socket).start(); // Crea un nuevo delegado para cada cliente
+        }
+    }
 
-                        // Lee los mensajes del cliente y los retransmite a todos los clientes conectados
-                        String mensaje;
-                        while ((mensaje = entrada.readLine()) != null) {
-                            System.out.println("Mensaje recibido de " + clienteSocket + ": " + mensaje);
-                            for (PrintWriter cliente : clientes) {
-                                cliente.println(mensaje);
-                            }
-                        }
-                    } catch (IOException e) {
-                        System.out.println("Error al manejar la conexión con el cliente: " + e.getMessage());
-                    } finally {
-                        clientes.removeIf(cliente -> cliente.equals(clienteSocket));
-                        try {
-                            clienteSocket.close(); // Cierra la conexión con el cliente
-                        } catch (IOException e) {
-                            System.out.println("Error al cerrar la conexión con el cliente: " + e.getMessage());
-                        }
-                    }
-                });
-                hiloCliente.start(); // Inicia el hilo para manejar la comunicación con el cliente
-            }
-        } catch (IOException e) {
-            System.out.println("Error en el servidor: " + e.getMessage());
+
+
+    private static KeyPair RSAKeyPairGenerator() {
+        try {
+            // Inicializar el generador de pares de claves para RSA
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+            keyGen.initialize(2048);
+
+            // Generar el par de claves
+            KeyPair pair = keyGen.generateKeyPair();
+            return pair;
+
+        } catch (NoSuchAlgorithmException e) {
+            System.out.println("RSA Key Pair Generator Algorithm not found: " + e.getMessage());
+
+            return null;
+        }
+    }
+
+
+}
+
+class DelegadoServidor extends Thread {
+    private Socket socket;
+
+    public DelegadoServidor(Socket socket) {
+        this.socket = socket;
+    }
+
+    public void run() {
+        try {
+            // Aquí se implementaría el manejo del protocolo (cifrado, verificación, etc.)
+            System.out.println("Conexión desde " + socket.getInetAddress());
+            // Ejemplo: Leer datos, procesar y enviar respuesta
+
+            DataInputStream input = new DataInputStream(socket.getInputStream());
+            DataOutputStream output = new DataOutputStream(socket.getOutputStream());
+
+            // Leer mensaje del cliente
+            byte[] buffer = new byte[1024];
+            int len = input.read(buffer);
+            String message = new String(buffer, 0, len);
+            System.out.println("Mensaje recibido: " + message);
+
+            // Enviar respuesta al cliente
+            output.writeUTF("Respuesta del servidor");
+            output.flush();
+
+            socket.close();
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
         }
     }
 }
