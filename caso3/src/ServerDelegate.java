@@ -162,18 +162,22 @@ public class ServerDelegate extends Thread {
                                 output.close();
                                 socket.close();
                             } else {
+                                System.out.println("Server " + id + " - Error in client verification (wrong simetric key or hash)");
                                 System.out.println("Server " + id + " - Consultation not successful");
                             }
                         } else {
+                            System.out.println("Server " + id + " - Error in client verification (wrong server credentials)");
                             output.writeUTF("ERROR");
                         }
 
                     } else {
+                        System.out.println("Server " + id + " - Error in client verification (wrong signature)");
                         input.close();
                         output.close();
                         socket.close();
                     }
                 } else {
+                    System.out.println("Server " + id + " - Error in client verification (wrong signature)");
                     input.close();
                     output.close();
                     socket.close();

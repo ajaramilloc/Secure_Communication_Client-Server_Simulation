@@ -147,9 +147,7 @@ public class ClientDelegate extends Thread {
 
                             // =================================== Validate HMAC Consultation ======================================= //
                             if (responseNumber == randomNumber - 1 && Arrays.equals(hmacBytes, hmacResultNumber)) {
-                                System.out.println("Client " + id + " - Consultation successful");
-                                System.out.println("Client " + id + " - Consultation number: " + randomNumber);
-                                System.out.println("Client " + id + " - Server Response number: " + responseNumber);
+                                System.out.println("Client " + id + " - Consultation number: " + randomNumber + " - Server Response number: " + responseNumber);
                                 output.writeUTF("OK");
                             } else {
                                 System.out.println("Client " + id + " - Consultation not successful");

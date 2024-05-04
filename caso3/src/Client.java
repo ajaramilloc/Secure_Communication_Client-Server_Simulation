@@ -29,6 +29,6 @@ public class Client extends Thread {
         scanner.close();
 
         Client client = new Client("localhost", 5000, numberOfClients);
-        client.start();  // Starts the client thread which in turn starts 5 client delegates
+        client.start();
     }
 }
