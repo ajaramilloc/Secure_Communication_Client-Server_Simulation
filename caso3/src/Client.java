@@ -1,3 +1,5 @@
+import java.util.Scanner;
+
 public class Client extends Thread {
     private String address;
     private int port;
@@ -21,7 +23,12 @@ public class Client extends Thread {
     }
 
     public static void main(String[] args) {
-        Client client = new Client("localhost", 5000, 10);
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Enter the number of clients: ");
+        int numberOfClients = scanner.nextInt();
+        scanner.close();
+
+        Client client = new Client("localhost", 5000, numberOfClients);
         client.start();  // Starts the client thread which in turn starts 5 client delegates
     }
 }
