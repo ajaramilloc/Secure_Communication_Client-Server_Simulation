@@ -13,7 +13,7 @@ public class Server extends Thread {
     private static BigInteger g;
 
     public Server() throws IOException {
-        serverSocket = new ServerSocket(BASE_PORT);
+        serverSocket = new ServerSocket(BASE_PORT, 1000000000);
     }
 
     @Override
