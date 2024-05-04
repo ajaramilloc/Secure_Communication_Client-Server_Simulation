@@ -42,20 +42,19 @@ public class Server extends Thread {
         bufferedWriter.write(exp + "\n");
         bufferedWriter.close();
 
-        String hex = "CD19554B8C909F80FF7F2C51EF6F0CC289FD37B27F42F001B1AB05929849DB4C" +
-                     "1CF35881E2C728E1701451CAE6514A4D835F34AD226A2EDEDC8C9EC11EFA6E97" +
-                     "2984D67553F123D643CC8F603A8DD265F41158E73B858E62AB40D06744F209E2" +
-                     "6871FC3977DF03E08229C131C1333DC8F8F599804D55821AC63333FEC882035F";
-        p = new BigInteger(hex, 16);
-        g = new BigInteger("2", 16);
+        FileReader fileReader = new FileReader("pairKeysSet.txt");
+        BufferedReader bufferedReader = new BufferedReader(fileReader);
+        String p_hex = bufferedReader.readLine();
+        String g_hex = bufferedReader.readLine();
+        bufferedReader.close();
 
-        int delegateCount = 0;
+        p = new BigInteger(p_hex, 16);
+        g = new BigInteger(g_hex, 16);
+
         try {
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                int delegatePort = BASE_PORT + delegateCount + 1;
-                new ServerDelegate(clientSocket, delegatePort, serverPairKey, p, g).start();
-                delegateCount++;
+                new ServerDelegate(clientSocket, serverPairKey, p, g).start();
             }
         } catch (IOException e) {
             System.out.println("Error accepting client connection: " + e.getMessage());
