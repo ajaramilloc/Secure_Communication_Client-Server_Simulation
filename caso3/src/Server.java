@@ -51,10 +51,12 @@ public class Server extends Thread {
         p = new BigInteger(p_hex, 16);
         g = new BigInteger(g_hex, 16);
 
+        int i = 0;
         try {
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                new ServerDelegate(clientSocket, serverPairKey, p, g).start();
+                new ServerDelegate(clientSocket, serverPairKey, p, g, i).start();
+                i++;
             }
         } catch (IOException e) {
             System.out.println("Error accepting client connection: " + e.getMessage());

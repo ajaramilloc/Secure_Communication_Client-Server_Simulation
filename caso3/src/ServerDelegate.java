@@ -21,12 +21,14 @@ public class ServerDelegate extends Thread {
     private SecretKeySpec secretKeySpec;
     private IvParameterSpec ivParameterSpec;
     private SecretKeySpec hashKeySpec;
+    private int id;
 
-    public ServerDelegate(Socket socket, KeyPair keyPair, BigInteger p, BigInteger g) {
+    public ServerDelegate(Socket socket, KeyPair keyPair, BigInteger p, BigInteger g, int i) {
         this.socket = socket;
         this.keyPair = keyPair;
         this.p = p;
         this.g = g;
+        this.id = i;
     }
 
     public void run() {
@@ -34,125 +36,144 @@ public class ServerDelegate extends Thread {
             input = new DataInputStream(socket.getInputStream());
             output = new DataOutputStream(socket.getOutputStream());
 
-            // Init
+            // =================================== Init ======================================= //
             String clientMessage = input.readUTF();
-            // Receiva R
+
+            // =================================== Read R ======================================= //
             if (clientMessage.startsWith("SECURE INIT")) {
                 long challenge = Long.parseLong(clientMessage.split(" ")[2]);
-                // Sign R'
+
+                // =================================== Sign R' ======================================= //
                 String R = signChallenge(challenge);
-                // Send R'
+
+                // =================================== Send R' ======================================= //
                 output.writeUTF(R);
 
-                // Clients verification
+                // =================================== Clients verification (OK|ERROR) ======================================= //
                 String clientResponse = input.readUTF();
-                // Verified
                 if (clientResponse.equals("OK")) {
-                    // Generate Diffie-Hellman parameters
+
+                    // =================================== Generate Diffie-Hellman parameters ======================================= //
                     BigInteger G = g;
                     BigInteger P = p;
-                    // Generate X
+
+                    // =================================== Generate X ======================================= //
                     SecureRandom random = new SecureRandom();
                     BigInteger x = new BigInteger(1024, random);
-                    // Generate Gx
+
+                    // =================================== Generate GX ======================================= //
                     BigInteger Gx = g.modPow(x, p);
 
-                    // Send G, P, Gx
+                    // =================================== Send G, P, Gx ======================================= //
                     output.writeUTF(G.toString());
                     output.writeUTF(P.toString());
                     output.writeUTF(Gx.toString());
-
-                    // Generate IV
+ 
+                    // =================================== Generate IV ======================================= //
                     String iv = generateIV();
-                    // Send IV
+
+                    // =================================== Send IV ======================================= //
                     output.writeUTF(iv);
 
-                    // Sign G, P, Gx
+                    // =================================== Sign G, P, Gx ======================================= //
                     String signature = signData(G, P, Gx);
-                    // Send signature
+
+                    // =================================== Send Signature ======================================= //
                     output.writeUTF(signature);
 
-                    // Receive and process Diffie-Hellman parameters and signature
+                    // =================================== Clients verification (OK|ERROR) ======================================= //
                     String clientVerification = input.readUTF();
-                    // Verified
                     if (clientVerification.equals("OK")) {
-                        // Receive Gy
+
+                        // =================================== Read GY ======================================= //
                         String Gy = input.readUTF();
                         BigInteger Gby = new BigInteger(Gy);
 
-                        // Generate master key
+                        // =================================== Generate keys ======================================= //
                         BigInteger masterKey = Gby.modPow(x, P);
-                        // Generate keys
                         ArrayList<byte[]> keys = generateKeys(masterKey);
 
-                        // Generate simetric key
+                        // =================================== Generate Simetric key ======================================= //
                         Cipher cipher = generateSimetricKey(keys.get(0), iv);
                         cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec);
 
-                        // Generate hash
+                        // =================================== Generate Hash HMAC ======================================= //
                         Mac mac = generateHash(keys.get(1));
                         mac.init(hashKeySpec);
 
+                        // =================================== PART TWO ======================================= //
                         output.writeUTF("CONTINUAR");
 
+                        // =================================== Get Server Credentials ======================================= //
                         ArrayList<String> credentials = getServerCredentials();
-
                         String serverUser = credentials.get(0);
                         String serverPassword = credentials.get(1);
 
+                        // =================================== Read Credentials ======================================= //
                         String user = input.readUTF();
                         String password = input.readUTF();
-
                         byte[] userBytes = Base64.getDecoder().decode(user);
                         byte[] passwordBytes = Base64.getDecoder().decode(password);
 
+                        // =================================== Decypher Credentials ======================================= //
                         cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec);
-
                         byte[] decryptedUserBytes = cipher.doFinal(userBytes);
                         String decryptedUser = new String(decryptedUserBytes);
-
                         byte[] decryptedPasswordBytes = cipher.doFinal(passwordBytes);
                         String decryptedPassword = new String(decryptedPasswordBytes);
 
+                        // =================================== Clients verification (OK|ERROR) ======================================= //
                         if (decryptedUser.equals(serverUser) && decryptedPassword.equals(serverPassword)) {
                             output.writeUTF("OK");
 
+                            // =================================== Read Consultation ======================================= //
                             String consultation = input.readUTF();
-        
                             byte[] consultationBytes = Base64.getDecoder().decode(consultation);
                             
+                            // =================================== Decypher Consultation ======================================= //
                             byte[] decryptedConsultationBytes = cipher.doFinal(consultationBytes);
                             String decryptedConsultation = new String(decryptedConsultationBytes);
 
+                            // =================================== Consultation Response ======================================= //
                             int consultationResult = Integer.parseInt(decryptedConsultation);
                             int result = consultationResult - 1;
                             String resultString = Integer.toString(result);
 
+                            // =================================== Cypher Consultation Response ======================================= //
                             cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec);
-                            
                             byte[] cypherResultBytes = cipher.doFinal(resultString.getBytes());
                             String cypherResultNumber = Base64.getEncoder().encodeToString(cypherResultBytes);
 
+                            // =================================== Send Cypher Consultation Response  ======================================= //
                             output.writeUTF(cypherResultNumber);
 
+                            // =================================== Hash Consultation Response ======================================= //
                             byte[] hmacBytes = mac.doFinal(resultString.getBytes());
                             String hmacResultNumber = Base64.getEncoder().encodeToString(hmacBytes);
 
+                            // =================================== Send Hash Consultation Response  ======================================= //
                             output.writeUTF(hmacResultNumber);
+
+                            // =================================== Clients verification (OK|ERROR) ======================================= //
+                            String finalVerification = input.readUTF();
+                            if (finalVerification.equals("OK")) {
+                                System.out.println("Server " + id + " - Consultation successful");
+                                input.close();
+                                output.close();
+                                socket.close();
+                            } else {
+                                System.out.println("Server " + id + " - Consultation not successful");
+                            }
                         } else {
                             output.writeUTF("ERROR");
                         }
 
                     } else {
-                        System.out.println("Client not verified");
                         input.close();
                         output.close();
                         socket.close();
                     }
-
-                // Not Verified
                 } else {
-                    System.out.println("Error: client response not OK");
                     input.close();
                     output.close();
                     socket.close();

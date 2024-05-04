@@ -16,7 +16,7 @@ public class Client extends Thread {
 
     private void startClient() {
         for (int i = 0; i < numberOfDelegates; i++) {
-            new ClientDelegate(address, port).start();
+            new ClientDelegate(address, port, i).start();
         }
     }
 

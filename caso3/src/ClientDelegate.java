@@ -23,10 +23,12 @@ public class ClientDelegate extends Thread {
     private SecretKeySpec secretKeySpec;
     private IvParameterSpec ivParameterSpec;
     private SecretKeySpec hashKeySpec;
+    private int id;
 
-    public ClientDelegate(String address, int port) {
+    public ClientDelegate(String address, int port, int i) {
         this.address = address;
         this.port = port;
+        this.id = i;
     }
 
     public void run() {
@@ -35,21 +37,21 @@ public class ClientDelegate extends Thread {
             output = new DataOutputStream(socket.getOutputStream());
             input = new DataInputStream(socket.getInputStream());
 
-            // Generate R
+            // =================================== Generate R ======================================= //
             SecureRandom random = new SecureRandom();
             long challenge = random.nextLong();
-            // Send R
+            // =================================== Send R ======================================= //
             output.writeUTF("SECURE INIT " + challenge);
 
-            // R'
+            // =================================== R' ======================================= //
             String serverResponse = input.readUTF();
-            // Get Servers Public Key
+            // =================================== Get Servers Public Key ======================================= //
             PublicKey publicKey = getServerPublicKey();
-            // Validate signature
+            // =================================== Validate signature ======================================= //
             if (verifySignature(serverResponse, challenge, publicKey)) {
                 output.writeUTF("OK");
 
-                // Receive and process Diffie-Hellman parameters and signature
+                // =================================== Receive and process Diffie-Hellman parameters and signature ======================================= //
                 String G = input.readUTF();
                 BigInteger Gb = new BigInteger(G);
                 String P = input.readUTF();
@@ -58,89 +60,103 @@ public class ClientDelegate extends Thread {
                 BigInteger Gbx = new BigInteger(Gx);
                 String iv = input.readUTF();
 
-                // Receive signature
+                // =================================== Receive signature ======================================= //
                 String signature = input.readUTF();
 
-                // Validate signature
+                // =================================== Validate signature (OK|ERROR)  ======================================= //
                 if (verifyMasterKey(signature, Gb, Pb, Gbx, publicKey)) {
                     output.writeUTF("OK");
                     
-                    // Generate Y
+                    // =================================== Generate Y  ======================================= //
                     SecureRandom randomY = new SecureRandom();
                     BigInteger y = new BigInteger(1024, randomY);
-                    // Generate Gy
+                    // =================================== Generate Gy = Gb^y mod Pb  ======================================= //
                     BigInteger Gy = Gb.modPow(y, Pb);
 
-                    // Generate master key
+                    // =================================== Generate master key  ======================================= //
                     BigInteger masterKey = Gbx.modPow(y, Pb);
 
-                    // Send Gy
+                    // =================================== Send Gy  ======================================= //
                     output.writeUTF(Gy.toString());
 
-                    // Generate keys
+                    // =================================== Generate keys ======================================= //
                     ArrayList<byte[]> keys = generateKeys(masterKey);
 
-                    // Generate simetric key
+                    // =================================== Generate simetric key ======================================= //
                     Cipher cipher = generateSimetricKey(keys.get(0), iv);
                     cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec);
 
-                    // Generate hash
+                    // =================================== Generate hash ======================================= //
                     Mac mac = generateHash(keys.get(1));
                     mac.init(hashKeySpec);
 
+                    // =================================== SECOND PART ======================================= //
                     String initPartTwo = input.readUTF();
 
                     if (initPartTwo.equals("CONTINUAR")) {
                         
+                        // =================================== Server Credentials Bytes ======================================= //
                         byte[] serverUser = "admin".getBytes();
                         byte[] serverPassword = "admin".getBytes();
 
+                        // =================================== Cypher Server user ======================================= //
                         byte[] cipherUserBytes = cipher.doFinal(serverUser);
                         String cipherUser = Base64.getEncoder().encodeToString(cipherUserBytes);
 
+                        // =================================== Send Cypher Server User ======================================= //
                         output.writeUTF(cipherUser);
 
+                         // =================================== Cypher Server password ======================================= //
                         byte[] cipherPasswordBytes = cipher.doFinal(serverPassword);
                         String cipherPassword = Base64.getEncoder().encodeToString(cipherPasswordBytes);
 
+                        // =================================== Send Cypher Server User ======================================= //
                         output.writeUTF(cipherPassword);
 
+                        // =================================== Read Server Credentials Validation (OK|ERROR) ======================================= //
                         String credentialsValidation = input.readUTF();
-
                         if (credentialsValidation.equals("OK")) {
+
+                            // =================================== Consultation ======================================= //
                             int randomNumber = random.nextInt();
                             String randomNumberString = String.valueOf(randomNumber);
-
+                            
+                            // =================================== Cypher Consultation ======================================= //
                             byte[] cypherRandomNumberBytes = cipher.doFinal(randomNumberString.getBytes());
                             String cypherRandomNumber = Base64.getEncoder().encodeToString(cypherRandomNumberBytes);
 
+                            // =================================== Send Cypher Consultation ======================================= //
                             output.writeUTF(cypherRandomNumber);
 
+                            // =================================== Read Consultation Response ======================================= //
                             String response = input.readUTF();
 
+                            // =================================== Decypher Consultation Response ======================================= //
                             byte[] responseBytes = Base64.getDecoder().decode(response);
-
                             cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec);
-
                             byte[] decryptedResponseBytes = cipher.doFinal(responseBytes);
                             String decryptedResponse = new String(decryptedResponseBytes);
-
                             int responseNumber = Integer.parseInt(decryptedResponse);
 
+                            // =================================== Read HMAC Consultation ======================================= //
                             String responseHmac = input.readUTF();
 
+                            // =================================== Get HMAC Consultation ======================================= //
                             byte[] hmacBytes = Base64.getDecoder().decode(responseHmac);
                             byte[] hmacResultNumber = mac.doFinal(decryptedResponse.getBytes());
 
+                            // =================================== Validate HMAC Consultation ======================================= //
                             if (responseNumber == randomNumber - 1 && Arrays.equals(hmacBytes, hmacResultNumber)) {
-                                System.out.println("Connection established successfully.");
+                                System.out.println("Client " + id + " - Consultation successful");
+                                System.out.println("Client " + id + " - Consultation number: " + randomNumber);
+                                System.out.println("Client " + id + " - Server Response number: " + responseNumber);
+                                output.writeUTF("OK");
                             } else {
-                                System.out.println("F");
+                                System.out.println("Client " + id + " - Consultation not successful");
                                 output.writeUTF("ERROR");
                                 closeConnection();
                             }
                         } else {
-                            output.writeUTF("ERROR");
                             closeConnection();
                         }
                     } else {
