@@ -48,7 +48,11 @@ public class ClientDelegate extends Thread {
             // =================================== Get Servers Public Key ======================================= //
             PublicKey publicKey = getServerPublicKey();
             // =================================== Validate signature ======================================= //
-            if (verifySignature(serverResponse, challenge, publicKey)) {
+            long startTimeSignaturteValidation = System.nanoTime();
+            Boolean signatureValidation = verifySignature(serverResponse, challenge, publicKey);
+            long endTimeSignaturteValidation = System.nanoTime();
+            long durationSignaturteValidation = endTimeSignaturteValidation - startTimeSignaturteValidation;
+            if (signatureValidation) {
                 output.writeUTF("OK");
 
                 // =================================== Receive and process Diffie-Hellman parameters and signature ======================================= //
@@ -71,7 +75,10 @@ public class ClientDelegate extends Thread {
                     SecureRandom randomY = new SecureRandom();
                     BigInteger y = new BigInteger(1024, randomY);
                     // =================================== Generate Gy = Gb^y mod Pb  ======================================= //
+                    long startTimeGenerateGy = System.nanoTime();
                     BigInteger Gy = Gb.modPow(y, Pb);
+                    long endTimeGenerateGy = System.nanoTime();
+                    long durationGenerateGy = endTimeGenerateGy - startTimeGenerateGy;
 
                     // =================================== Generate master key  ======================================= //
                     BigInteger masterKey = Gbx.modPow(y, Pb);
@@ -122,11 +129,24 @@ public class ClientDelegate extends Thread {
                             String randomNumberString = String.valueOf(randomNumber);
                             
                             // =================================== Cypher Consultation ======================================= //
+                            long startTimeCypher = System.nanoTime();
                             byte[] cypherRandomNumberBytes = cipher.doFinal(randomNumberString.getBytes());
+                            long endTimeCypher = System.nanoTime();
+                            long durationCypher = endTimeCypher - startTimeCypher;
                             String cypherRandomNumber = Base64.getEncoder().encodeToString(cypherRandomNumberBytes);
 
                             // =================================== Send Cypher Consultation ======================================= //
                             output.writeUTF(cypherRandomNumber);
+
+                            // =================================== Hash Consultation ======================================= //
+                            long startTimeAuth = System.nanoTime();
+                            byte[] hmacBytesSend = mac.doFinal(Integer.toString(randomNumber).getBytes());
+                            long endTimeAuth = System.nanoTime();
+                            long durationAuth = endTimeAuth - startTimeAuth;
+                            String hmacSend = Base64.getEncoder().encodeToString(hmacBytesSend);
+
+                            // =================================== Send Hash Consultation ======================================= //
+                            output.writeUTF(hmacSend);
 
                             // =================================== Read Consultation Response ======================================= //
                             String response = input.readUTF();
@@ -138,16 +158,16 @@ public class ClientDelegate extends Thread {
                             String decryptedResponse = new String(decryptedResponseBytes);
                             int responseNumber = Integer.parseInt(decryptedResponse);
 
-                            // =================================== Read HMAC Consultation ======================================= //
+                            // =================================== Read HMAC Consultation Response ======================================= //
                             String responseHmac = input.readUTF();
 
-                            // =================================== Get HMAC Consultation ======================================= //
+                            // =================================== Get HMAC Consultation Response ======================================= //
                             byte[] hmacBytes = Base64.getDecoder().decode(responseHmac);
                             byte[] hmacResultNumber = mac.doFinal(decryptedResponse.getBytes());
 
                             // =================================== Validate HMAC Consultation ======================================= //
                             if (responseNumber == randomNumber - 1 && Arrays.equals(hmacBytes, hmacResultNumber)) {
-                                System.out.println("Client " + id + " - Consultation number: " + randomNumber + " - Server Response number: " + responseNumber);
+                                System.out.println("Client " + id + "| Consultation number: " + randomNumber + " - Server Response number: " + responseNumber + "| Verification Time: " + durationSignaturteValidation + "ns | Gy Generation Time: " + durationGenerateGy + "ns | Cypher Time: " + durationCypher + "ns | Auth Time: " + durationAuth + "ns");
                                 output.writeUTF("OK");
                             } else {
                                 System.out.println("Client " + id + " - Consultation not successful");

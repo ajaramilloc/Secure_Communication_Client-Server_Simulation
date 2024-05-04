@@ -44,7 +44,10 @@ public class ServerDelegate extends Thread {
                 long challenge = Long.parseLong(clientMessage.split(" ")[2]);
 
                 // =================================== Sign R' ======================================= //
+                long startTimeSignaturteGeneration = System.nanoTime();
                 String R = signChallenge(challenge);
+                long endTimeSignaturteGeneration = System.nanoTime();
+                long durationSignaturteGeneration = endTimeSignaturteGeneration - startTimeSignaturteGeneration;
 
                 // =================================== Send R' ======================================= //
                 output.writeUTF(R);
@@ -126,13 +129,35 @@ public class ServerDelegate extends Thread {
                         if (decryptedUser.equals(serverUser) && decryptedPassword.equals(serverPassword)) {
                             output.writeUTF("OK");
 
-                            // =================================== Read Consultation ======================================= //
+                            // =================================== Read Consultation Response ======================================= //
                             String consultation = input.readUTF();
                             byte[] consultationBytes = Base64.getDecoder().decode(consultation);
                             
-                            // =================================== Decypher Consultation ======================================= //
+                            // =================================== Decypher Consultation Response ======================================= //
+                            long startTimeDecypher = System.nanoTime();
                             byte[] decryptedConsultationBytes = cipher.doFinal(consultationBytes);
+                            long endTimeDecypher = System.nanoTime();
+                            long durationDecypher = endTimeDecypher - startTimeDecypher;
                             String decryptedConsultation = new String(decryptedConsultationBytes);
+
+                            // =================================== Read HMAC Consultation Response ======================================= //
+                            String responseHmac = input.readUTF();
+
+                            // =================================== Get HMAC Consultation Response ======================================= //
+                            byte[] hmacBytesResponse = Base64.getDecoder().decode(responseHmac);
+                            byte[] hmacResultNumberResponse = mac.doFinal(decryptedConsultation.getBytes());
+
+                            // =================================== Validate HMAC Consultation Response ======================================= //
+                            long startTimeAuth = System.nanoTime();
+                            Boolean isHmacValid = Arrays.equals(hmacBytesResponse, hmacResultNumberResponse);
+                            long endTimeAuth = System.nanoTime();
+                            long durationAuth = endTimeAuth - startTimeAuth;
+                            if (!isHmacValid){
+                                System.out.println("Server " + id + " - Error in client verification (wrong hash)");
+                                input.close();
+                                output.close();
+                                socket.close();
+                            }
 
                             // =================================== Consultation Response ======================================= //
                             int consultationResult = Integer.parseInt(decryptedConsultation);
@@ -157,7 +182,7 @@ public class ServerDelegate extends Thread {
                             // =================================== Clients verification (OK|ERROR) ======================================= //
                             String finalVerification = input.readUTF();
                             if (finalVerification.equals("OK")) {
-                                System.out.println("Server " + id + " - Consultation successful");
+                                System.out.println("Server " + id + " - Consultation successful" + " | " + "Sign generation time: " + durationSignaturteGeneration + " ns" + " | " + "Decypher time: " + durationDecypher + " ns" + " | " + "HMAC validation time: " + durationAuth + " ns");
                                 input.close();
                                 output.close();
                                 socket.close();
