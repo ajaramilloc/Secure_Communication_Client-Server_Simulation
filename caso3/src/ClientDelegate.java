@@ -168,7 +168,6 @@ public class ClientDelegate extends Thread {
                             // =================================== Validate HMAC Consultation ======================================= //
                             if (responseNumber == randomNumber - 1 && Arrays.equals(hmacBytes, hmacResultNumber)) {
                                 System.out.println("Client " + id + "| Consultation number: " + randomNumber + " - Server Response number: " + responseNumber + "| Verification Time: " + durationSignaturteValidation + "ns | Gy Generation Time: " + durationGenerateGy + "ns | Cypher Time: " + durationCypher + "ns | Auth Time: " + durationAuth + "ns");
-                                print(durationSignaturteValidation, durationGenerateGy, durationCypher, durationAuth);
                                 output.writeUTF("OK");
                             } else {
                                 System.out.println("Client " + id + " - Consultation not successful");
@@ -330,17 +329,6 @@ public class ClientDelegate extends Thread {
             if (output != null) output.close();
         } catch (IOException e) {
             System.out.println("Error closing the connection: " + e.getMessage());
-        }
-    }
-
-    private void print(long durationSignaturteValidation, long durationGenerateGy, long durationCypher, long durationAuth) {   
-        File file = new File("client_64.csv");
-        try {
-            FileWriter fr = new FileWriter(file, true);
-            fr.write(durationSignaturteValidation + "," + durationGenerateGy + "," + durationCypher + "," + durationAuth + "\n");
-            fr.close();
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 }
