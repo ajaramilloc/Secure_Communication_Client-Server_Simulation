@@ -68,13 +68,4 @@ public class Server extends Thread {
         keyGen.initialize(2048);
         return keyGen.generateKeyPair();
     }
-
-    public static void main(String[] args) {
-        try {
-            Server server = new Server();
-            server.start();
-        } catch (IOException e) {
-            System.out.println("Server initialization failed: " + e.getMessage());
-        }
-    }
 }

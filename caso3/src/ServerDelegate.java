@@ -22,7 +22,7 @@ public class ServerDelegate extends Thread {
     private IvParameterSpec ivParameterSpec;
     private SecretKeySpec hashKeySpec;
     private int id;
-
+    
     public ServerDelegate(Socket socket, KeyPair keyPair, BigInteger p, BigInteger g, int i) {
         this.socket = socket;
         this.keyPair = keyPair;
@@ -183,6 +183,7 @@ public class ServerDelegate extends Thread {
                             String finalVerification = input.readUTF();
                             if (finalVerification.equals("OK")) {
                                 System.out.println("Server " + id + " - Consultation successful: " + consultationResult +" | Consultation number: " +  " | " + "Sign generation time: " + durationSignaturteGeneration + " ns" + " | " + "Decypher time: " + durationDecypher + " ns" + " | " + "HMAC validation time: " + durationAuth + " ns");
+                                print(durationSignaturteGeneration, durationDecypher, durationAuth);
                                 input.close();
                                 output.close();
                                 socket.close();
@@ -337,5 +338,16 @@ public class ServerDelegate extends Thread {
         credentials.add(user);
         credentials.add(password);
         return credentials;
+    }
+
+    private void print(long authTime, long decypherTime, long signTime) {   
+        File file = new File("server_64.csv");
+        try {
+            FileWriter fr = new FileWriter(file, true);
+            fr.write(authTime + "," + decypherTime + "," + signTime + "\n");
+            fr.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
