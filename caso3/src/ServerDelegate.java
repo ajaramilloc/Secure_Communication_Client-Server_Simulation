@@ -182,7 +182,7 @@ public class ServerDelegate extends Thread {
                             // =================================== Clients verification (OK|ERROR) ======================================= //
                             String finalVerification = input.readUTF();
                             if (finalVerification.equals("OK")) {
-                                System.out.println("Server " + id + " - Consultation successful" + " | " + "Sign generation time: " + durationSignaturteGeneration + " ns" + " | " + "Decypher time: " + durationDecypher + " ns" + " | " + "HMAC validation time: " + durationAuth + " ns");
+                                System.out.println("Server " + id + " - Consultation successful: " + consultationResult +" | Consultation number: " +  " | " + "Sign generation time: " + durationSignaturteGeneration + " ns" + " | " + "Decypher time: " + durationDecypher + " ns" + " | " + "HMAC validation time: " + durationAuth + " ns");
                                 input.close();
                                 output.close();
                                 socket.close();
